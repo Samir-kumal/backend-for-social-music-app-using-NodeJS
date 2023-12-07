@@ -27,13 +27,33 @@ cloudinary.config({
 
 // const { storage } = require('./storage/storage');
 
-
 //we used upload.single to tell "multer" to upload
 // only single image
-// app.post('/upload', upload.single('image'), (req, res) => {
-//   console.log(req.file);
-//   res.send('Done');
-// });
+app.post("/upload", (req, res) => {
+  const { image } = req.body;
+  uploadImage(image);
+  res.send("Done");
+});
+
+const uploadImage = async (imageFilePath) => {
+  try {
+    const uploadResult = await cloudinary.uploader.upload(imageFilePath, {
+      folder: "/profileImages",
+      resource_type: "image",
+      // Use title as the public_id // Let Cloudinary determine the resource type
+      use_filename: true,
+    });
+
+    if (uploadResult) {
+      console.log("Upload Result:", uploadResult);
+    }
+    return uploadResult.secure_url; // Return the secure URL of the uploaded song
+  } catch (error) {
+    console.error("Error uploading song:", error.message);
+    throw error; // Propagate the error to the calling function
+  }
+};
+
 mongoose
   .connect(
     "mongodb+srv://kumalsameer124:wasd@cluster0.konldwo.mongodb.net/test",
@@ -78,7 +98,7 @@ app.post("/register", (req, res) => {
 });
 
 //function to create a token for the user
-const createToken = (userId, userName, userEmail, userImage,isArtist) => {
+const createToken = (userId, userName, userEmail, userImage, isArtist) => {
   // Set the token payload
   const payload = {
     userId: userId,
@@ -118,7 +138,13 @@ app.post("/login", (req, res) => {
         return res.status(401).json({ message: "Invalid Password!" });
       }
 
-      const token = createToken(user._id, user.name, user.email, user.image, user.isArtist);
+      const token = createToken(
+        user._id,
+        user.name,
+        user.email,
+        user.image,
+        user.isArtist
+      );
       res.status(200).json({ token });
     })
     .catch((error) => {
@@ -127,7 +153,7 @@ app.post("/login", (req, res) => {
     });
 });
 
-app.get("/newSongs", (req, res) =>{
+app.get("/newSongs", (req, res) => {
   NewSongs.find()
     .then((songs) => {
       res.status(200).json(songs);
@@ -136,7 +162,7 @@ app.get("/newSongs", (req, res) =>{
       console.log("Error retrieving users", err);
       res.status(500).json({ message: "Error retrieving songs" });
     });
-})
+});
 
 app.get("/songs", async (req, res) => {
   try {
@@ -151,7 +177,7 @@ app.get("/songs", async (req, res) => {
       artist: resource.uploaded_by,
       url: resource.secure_url,
     }));
-    
+
     res.json(songs);
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
@@ -169,8 +195,7 @@ const uploadSong = async (songFilePath, title, artist) => {
       },
     });
 
-  
-    if(uploadResult){
+    if (uploadResult) {
       const imageCover = ImageCover;
       console.log("Upload Result:", uploadResult);
       const assetId = uploadResult.asset_id;
@@ -178,17 +203,24 @@ const uploadSong = async (songFilePath, title, artist) => {
       const duration = uploadResult.duration;
       const title = uploadResult.original_filename;
       const artist = uploadResult.context.custom.artist;
-    // const newSong = new Song({ songId:assetId, title:title, artist:artist, url:url, duration:duration });
-    // newSong
-    const newSong = new NewSongs({ songId:assetId, title:title, artist:artist, imageCover:imageCover, url:url, duration:duration });
-    newSong
-    .save()
-    .then(() => {
-     console.log("message: Song Added successfully" );
-    })
-    .catch((err) => {
-      console.log("Error registering Song", err);
-    });
+      // const newSong = new Song({ songId:assetId, title:title, artist:artist, url:url, duration:duration });
+      // newSong
+      const newSong = new NewSongs({
+        songId: assetId,
+        title: title,
+        artist: artist,
+        imageCover: imageCover,
+        url: url,
+        duration: duration,
+      });
+      newSong
+        .save()
+        .then(() => {
+          console.log("message: Song Added successfully");
+        })
+        .catch((err) => {
+          console.log("Error registering Song", err);
+        });
     }
     return uploadResult.secure_url; // Return the secure URL of the uploaded song
   } catch (error) {
@@ -197,10 +229,12 @@ const uploadSong = async (songFilePath, title, artist) => {
   }
 };
 
-const songFilePath = "./newsongs/Taylor Swift - Lover (Official Music Video).mp3";
+const songFilePath =
+  "./newsongs/Taylor Swift - Lover (Official Music Video).mp3";
 const title = "Taylor Swift - Lover";
 const artist = "Taylor Swift";
-const ImageCover = "https://i.scdn.co/image/ab67616d00001e02e787cffec20aa2a396a61647"
+const ImageCover =
+  "https://i.scdn.co/image/ab67616d00001e02e787cffec20aa2a396a61647";
 // uploadSong(songFilePath, title, artist)
 //   .then((songUrl) => {
 //     console.log('Song uploaded successfully. URL:', songUrl);
@@ -208,6 +242,17 @@ const ImageCover = "https://i.scdn.co/image/ab67616d00001e02e787cffec20aa2a396a6
 //   .catch((error) => {
 //     console.error('Song upload failed:', error);
 //   });
+
+app.post("/uploadSong", async (req, res) => {
+  const { songFilePath, title, artist, ImageCover } = req.body;
+  uploadSong(songFilePath, title, artist)
+    .then((songUrl) => {
+      console.log("Song uploaded successfully. URL:", songUrl);
+    })
+    .catch((error) => {
+      console.error("Song upload failed:", error);
+    });
+});
 
 //endpoint to access all the users except the user who's is currently logged in!
 app.get("/users/:userId", (req, res) => {
@@ -238,7 +283,7 @@ app.get("/users", (req, res) => {
 //endpoint to send a request to a user
 app.post("/follow-request", async (req, res) => {
   const { currentUserId, selectedUserId } = req.body;
-console.log(currentUserId, selectedUserId)
+  console.log(currentUserId, selectedUserId);
   try {
     //update the recepient's friendRequestsArray!
     await User.findByIdAndUpdate(selectedUserId, {
@@ -260,7 +305,7 @@ console.log(currentUserId, selectedUserId)
 app.get("/follow-request/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
-    
+
     //fetch the user document based on the User id
     const user = await User.findById(userId)
       .populate("friendRequests", "name email image")
@@ -321,7 +366,7 @@ app.get("/accepted-friends/:userId", async (req, res) => {
   }
 });
 
-const multer = require('multer');
+const multer = require("multer");
 
 // Configure multer for handling file uploads
 const storage = multer.diskStorage({
@@ -335,7 +380,6 @@ const storage = multer.diskStorage({
   },
 });
 const upload = multer({ storage });
-
 
 //endpoint to post Messages and store it in the backend
 app.post("/messages", upload.single("imageFile"), async (req, res) => {

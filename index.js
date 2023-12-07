@@ -30,11 +30,12 @@ cloudinary.config({
 //we used upload.single to tell "multer" to upload
 // only single image
 app.post("/uploadImage",async (req, res) => {
-  const { imageUrl, name } = req.body;
+  const { image } = req.body;
   try{
     // uploadImage(image);
-  // res.send("Done");
-  console.log(imageUrl);
+  console.log(image);
+  res.send("Done");
+
   }catch (e){
     console.log(e);
   }

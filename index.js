@@ -29,27 +29,34 @@ cloudinary.config({
 
 //we used upload.single to tell "multer" to upload
 // only single image
-app.post("/upload", (req, res) => {
-  const { image } = req.body;
-  uploadImage(image);
-  res.send("Done");
+app.post("/uploadImage",async (req, res) => {
+  const { imageUrl, name } = req.body;
+  try{
+    // uploadImage(image);
+  // res.send("Done");
+  console.log(imageUrl);
+  }catch (e){
+    console.log(e);
+  }
 });
 
 const uploadImage = async (imageFilePath) => {
   try {
     const uploadResult = await cloudinary.uploader.upload(imageFilePath, {
       folder: "/profileImages",
-      resource_type: "image",
+      resource_type: "auto",
       // Use title as the public_id // Let Cloudinary determine the resource type
       use_filename: true,
+      unique_filename: false,
+      overwrite: true,
     });
 
     if (uploadResult) {
       console.log("Upload Result:", uploadResult);
     }
-    return uploadResult.secure_url; // Return the secure URL of the uploaded song
+    return uploadResult.secure_url; // Return the secure URL of the uploaded image
   } catch (error) {
-    console.error("Error uploading song:", error.message);
+    console.error("Error uploading image:", error.message);
     throw error; // Propagate the error to the calling function
   }
 };

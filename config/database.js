@@ -1,17 +1,16 @@
 const mongoose = require("mongoose");
-const connectDB = mongoose
-  .connect(
-    "mongodb+srv://kumalsameer124:wasd@cluster0.konldwo.mongodb.net/test",
-    {
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGO_URL, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-    }
-  )
-  .then(() => {
-    console.log("Connected to Mongo Db");
-  })
-  .catch((err) => {
-    console.log("Error connecting to MongoDb", err);
-  });
+    });
+
+    console.log(`Connected to Mongo Db Database ${conn.connection.host} `.yellow.underline );
+  } catch (e) {
+    console.error(e.message);
+    process.exit(1);
+  }
+};
 
 module.exports = connectDB;

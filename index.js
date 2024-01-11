@@ -1,18 +1,18 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const passport = require("passport");
-const {connectDB} = require("./config/database")
+const connectDB = require("./config/database");
 const LocalStrategy = require("passport-local").Strategy;
-
+require("dotenv").config();
 const app = express();
 const port = 9000;
 const cors = require("cors");
+const colors = require("colors");
 app.use(cors());
 connectDB();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(passport.initialize());
-const jwt = require("jsonwebtoken");
 
 const cloudinary = require("cloudinary").v2;
 
@@ -61,8 +61,6 @@ const uploadImage = async (imageFilePath) => {
     throw error; // Propagate the error to the calling function
   }
 };
-
-
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
@@ -73,79 +71,9 @@ const Song = require("./models/song");
 const NewSongs = require("./models/newSongs");
 //endpoint for registration of the user
 
-app.post("/register", (req, res) => {
-  const { name, email, password, image, isArtist } = req.body;
+app.use("/users", require("./routes/userRoutes"))
 
-  // create a new User object
-  const newUser = new User({ name, email, password, image, isArtist });
 
-  // save the user to the database
-  newUser
-    .save()
-    .then(() => {
-      res.status(200).json({ message: "User registered successfully" });
-    })
-    .catch((err) => {
-      console.log("Error registering user", err);
-      res.status(500).json({ message: "Error registering the user!" });
-    });
-});
-
-//function to create a token for the user
-const createToken = (userId, userName, userEmail, userImage, isArtist) => {
-  // Set the token payload
-  const payload = {
-    userId: userId,
-    userName: userName,
-    userEmail: userEmail,
-    userImage: userImage,
-    isArtist: isArtist,
-  };
-
-  // Generate the token with a secret key and expiration time
-  const token = jwt.sign(payload, "Q$r2K6W8n!jCW%Zk", { expiresIn: "1h" });
-
-  return token;
-};
-
-//endpoint for logging in of that particular user
-app.post("/login", (req, res) => {
-  const { email, password } = req.body;
-
-  //check if the email and password are provided
-  if (!email || !password) {
-    return res
-      .status(404)
-      .json({ message: "Email and the password are required" });
-  }
-
-  //check for that user in the database
-  User.findOne({ email })
-    .then((user) => {
-      if (!user) {
-        //user not found
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      //compare the provided passwords with the password in the database
-      if (user.password !== password) {
-        return res.status(401).json({ message: "Invalid Password!" });
-      }
-
-      const token = createToken(
-        user._id,
-        user.name,
-        user.email,
-        user.image,
-        user.isArtist
-      );
-      res.status(200).json({ token });
-    })
-    .catch((error) => {
-      console.log("error in finding the user", error);
-      res.status(500).json({ message: "Internal server Error!" });
-    });
-});
 
 app.get("/newSongs", (req, res) => {
   NewSongs.find()
@@ -249,18 +177,18 @@ app.post("/uploadSong", async (req, res) => {
 });
 
 //endpoint to access all the users except the user who's is currently logged in!
-app.get("/users/:userId", (req, res) => {
-  const loggedInUserId = req.params.userId;
+// app.get("/users/:userId", (req, res) => {
+//   const loggedInUserId = req.params.userId;
 
-  User.find({ _id: { $ne: loggedInUserId } })
-    .then((users) => {
-      res.status(200).json(users);
-    })
-    .catch((err) => {
-      console.log("Error retrieving users", err);
-      res.status(500).json({ message: "Error retrieving users" });
-    });
-});
+//   User.find({ _id: { $ne: loggedInUserId } })
+//     .then((users) => {
+//       res.status(200).json(users);
+//     })
+//     .catch((err) => {
+//       console.log("Error retrieving users", err);
+//       res.status(500).json({ message: "Error retrieving users" });
+//     });
+// });
 
 //get list of all the registered users
 app.get("/users", (req, res) => {
